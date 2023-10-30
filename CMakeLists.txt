@@ -1,30 +1,17 @@
-cmake_minimum_required(VERSION 3.13.2)
+cmake_minimum_required(VERSION 3.16)
+
+set(CMAKE_CUDA_ARCHITECTURES 80)
 
 project(GraphColoring
-		VERSION 2022.09.26
+		VERSION 1.0.0
 		LANGUAGES CUDA CXX)
 
-# begin /* Suppress all warnings from gcc */
-# option(ENABLE_WARNINGS "Deprecated declarations warning flag." OFF)
-# if (ENABLE_WARNINGS)
-#   # moderngpu will give auto_ptr warning.
-# else (ENABLE_WARNINGS)
-#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
-#   add_definitions ("-w")
-# endif (ENABLE_WARNINGS)
-# end /* Suppress all warnings from gcc */
-
-# set(CMAKE_CXX_STANDARD 11)
-# set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11 -fPIC")
-
-# option(CMAKE_VERBOSE_MAKEFILE OFF)
-
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_C_STANDARD 17)
 find_package(Threads REQUIRED)
+find_package(OpenMP REQUIRED)
 
-# # begin /* Find and set CUDA arch */
-set(REQUIRED_CUDA_VERSION 9.0)
+set(REQUIRED_CUDA_VERSION 12.0)
 FIND_PACKAGE(CUDA ${REQUIRED_CUDA_VERSION} REQUIRED)
 # # /* enables relocatable device code linking */
 SET(CUDA_SEPARABLE_COMPILATION ON)
@@ -64,6 +51,8 @@ set(GENCODE_SM75 75)
   # -gencode=arch=compute_75,code=sm_75 -gencode=arch=compute_75,code=compute_75)
 set(GENCODE_SM80 80)
   # -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_80,code=compute_80)
+#set(GENCODE_SM82 82)
+  # -gencode=arch=compute_82,code=sm_82 -gencode=arch=compute_82,code=compute_82)
 
 #set(GENCODE -gencode=arch=compute_10,code=compute_10) # at least generate PTX
 # end /* SET GENCODE_SM */
@@ -133,6 +122,9 @@ if (CUDA_VERSION VERSION_EQUAL "11.0" OR CUDA_VERSION VERSION_GREATER "11.0")
   option(GC_GENCODE_SM80
     "ON to generate code for Compute Capability 8.0 devices"
     ON)
+  #option(GC_GENCODE_SM82
+  #  "ON to generate code for Compute Capability 8.2 devices"
+  #  ON)
 endif ()
 
 option (CUDA_AUTODETECT_GENCODE
@@ -204,10 +196,14 @@ if (GC_GENCODE_SM80)
   set(GENCODE ${GENCODE} ${GENCODE_SM80})
 endif(GC_GENCODE_SM80)
 
+#if (GC_GENCODE_SM82)
+#  set(GENCODE ${GENCODE} ${GENCODE_SM82})
+#endif(GC_GENCODE_SM82)
+
 message(STATUS "Listing chosen GENCODE commands")
 foreach(code IN LISTS GENCODE)
     message(STATUS "${code}")
-endforeach() 
+endforeach()
 
 
 if (CUDA_VERBOSE_PTXAS)
@@ -217,7 +213,7 @@ endif (CUDA_VERBOSE_PTXAS)
 
 # c++11 is required
 # Already set above. Causes build error on Ubuntu 18.04.1 LTS
-set(CUDA_NVCC_FLAGS --expt-extended-lambda -rdc=true -lcudadevrt)
+set(CUDA_NVCC_FLAGS --expt-extended-lambda -rdc=true -lcudadevrt -O3)
 set(CUDA_LIBRARIES ${CUDA_LIBRARIES} ${CUDA_cusparse_LIBRARY} ${CUDA_cublas_LIBRARY})
 message(STATUS ${CUDA_LIBRARIES})
 include_directories(${CUDA_INCLUDE_DIRS})
